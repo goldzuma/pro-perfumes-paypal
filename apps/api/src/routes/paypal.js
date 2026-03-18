@@ -996,7 +996,13 @@ async function requestPayPalJson(path, { method = 'GET', accessToken, body } = {
 // Response: PayPal order payload including { id, status }
 // ============================================================================
 router.post('/create-order', async (req, res) => {
-  const { amount, currency = 'BRL', description = 'Pedido Velour Perfumes' } = req.body || {};
+  const {
+    amount,
+    currency = 'BRL',
+    description = 'Pedido Velour Perfumes',
+    returnUrl,
+    cancelUrl,
+  } = req.body || {};
   const normalizedAmount = Number(amount);
 
   if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
@@ -1005,24 +1011,49 @@ router.post('/create-order', async (req, res) => {
 
   try {
     const accessToken = await getPayPalAccessToken();
+    const orderBody = {
+      intent: 'CAPTURE',
+      purchase_units: [
+        {
+          description,
+          amount: {
+            currency_code: currency,
+            value: normalizedAmount.toFixed(2),
+          },
+        },
+      ],
+    };
+
+    if (typeof returnUrl === 'string' && typeof cancelUrl === 'string') {
+      orderBody.payment_source = {
+        paypal: {
+          experience_context: {
+            return_url: returnUrl,
+            cancel_url: cancelUrl,
+            user_action: 'PAY_NOW',
+          },
+        },
+      };
+    }
+
     const order = await requestPayPalJson('/v2/checkout/orders', {
       method: 'POST',
       accessToken,
-      body: {
-        intent: 'CAPTURE',
-        purchase_units: [
-          {
-            description,
-            amount: {
-              currency_code: currency,
-              value: normalizedAmount.toFixed(2),
-            },
-          },
-        ],
-      },
+      body: orderBody,
     });
+    const links = Array.isArray(order?.links) ? order.links : [];
+    const approvalUrlFromLinks =
+      links.find((l) => l?.rel === 'approve')?.href
+      || links.find((l) => l?.rel === 'payer-action')?.href
+      || links.find((l) => l?.rel === 'approval_url')?.href;
+    const fallbackApprovalUrl = order?.id
+      ? `${paypalMode === 'live' ? 'https://www.paypal.com' : 'https://www.sandbox.paypal.com'}/checkoutnow?token=${order.id}`
+      : null;
 
-    res.json(order);
+    res.json({
+      ...order,
+      approvalUrl: approvalUrlFromLinks || fallbackApprovalUrl,
+    });
   } catch (err) {
     logger.error('[paypal/create-order]', err.message);
     res.status(500).json({ error: err.message || 'Falha ao criar ordem no PayPal' });

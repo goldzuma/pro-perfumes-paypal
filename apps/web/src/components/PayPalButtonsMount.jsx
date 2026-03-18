@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PayPalButton from '@/components/PayPalButton.jsx';
 import { useToast } from '@/hooks/use-toast.js';
 import { useCart } from '@/hooks/useCart.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import apiServerClient from '@/lib/apiServerClient.js';
 
 /**
  * Mounts PayPal Smart Buttons (contest-system style).
@@ -29,38 +30,55 @@ export default function PayPalButtonsMount({ amount, disabled, description }) {
   }
 
   const amountStr = amount != null && amount !== '' ? String(Number(amount).toFixed(2)) : '0.00';
+  const handleRedirectCheckout = async () => {
+    try {
+      const returnUrl = `${window.location.origin}/paypal-success`;
+      const cancelUrl = `${window.location.origin}/paypal-cancel`;
+      const response = await apiServerClient.fetch('/paypal/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amountStr,
+          currency: 'BRL',
+          description: description || 'Pedido Velour Perfumes',
+          returnUrl,
+          cancelUrl,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'Falha ao criar pedido PayPal');
+      }
+
+      const approveLink =
+        payload?.approvalUrl
+        || payload?.links?.find((l) =>
+          l?.rel === 'approve'
+          || l?.rel === 'payer-action'
+          || l?.rel === 'approval_url'
+        )?.href;
+      if (!approveLink) {
+        throw new Error('URL de aprovação do PayPal não encontrada');
+      }
+
+      window.location.href = approveLink;
+    } catch (e) {
+      toast({
+        title: 'Erro no PayPal',
+        description: e?.message || 'Falha ao iniciar pagamento',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
-    <PayPalButton
-      clientId={clientId}
-      currency="BRL"
-      amount={amountStr}
-      description={description || 'Pedido Velour Perfumes'}
-      onApprove={async ({ orderId, captureId }) => {
-        clearCart();
-        navigate('/paypal-success', {
-          state: {
-            orderId,
-            captureId,
-            amount: amountStr,
-            status: 'approved',
-          },
-        });
-      }}
-      onError={(m) =>
-        toast({
-          title: 'Erro no PayPal',
-          description: m,
-          variant: 'destructive',
-        })
-      }
-      onCancel={() =>
-        toast({
-          title: 'Pagamento cancelado',
-          description: 'Você pode tentar novamente quando quiser.',
-        })
-      }
+    <Button
+      onClick={handleRedirectCheckout}
       disabled={disabled}
-    />
+      className="w-full h-10 bg-[#0070ba] hover:bg-[#005ea6] text-white font-medium"
+    >
+      Pay with Paypal
+    </Button>
   );
 }

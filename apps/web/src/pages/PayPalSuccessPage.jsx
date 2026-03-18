@@ -11,6 +11,7 @@ const PayPalSuccessPage = () => {
   const location = useLocation();
   const paymentId = searchParams.get('paymentId');
   const payerId = searchParams.get('PayerID') || searchParams.get('payerId');
+  const orderToken = searchParams.get('token');
   /** State from Smart Buttons flow (verify-capture + navigate with state) */
   const stateDetails = location.state;
 
@@ -29,6 +30,41 @@ const PayPalSuccessPage = () => {
   const hasExecuted = useRef(false);
 
   const executePayment = async () => {
+    if (orderToken) {
+      setStatus('loading');
+      setError(null);
+      try {
+        const response = await apiServerClient.fetch('/paypal/capture-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderID: orderToken }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || 'Falha ao capturar pedido no servidor');
+        }
+
+        const capturedAmount =
+          data?.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value
+          || data?.purchase_units?.[0]?.amount?.value
+          || null;
+
+        setPaymentDetails({
+          id: data?.id || orderToken,
+          amount: capturedAmount,
+          status: data?.status?.toLowerCase?.() || 'approved',
+        });
+        setStatus('success');
+        clearCart();
+        return;
+      } catch (err) {
+        console.error('[PayPalSuccess] Erro ao capturar order token:', err);
+        setStatus('error');
+        setError(err.message || 'Ocorreu um erro ao confirmar seu pagamento.');
+        return;
+      }
+    }
+
     if (!paymentId || !payerId) {
       setStatus('error');
       setError('Parâmetros de pagamento ausentes na URL. Não foi possível confirmar a transação.');
@@ -68,14 +104,16 @@ const PayPalSuccessPage = () => {
       clearCart();
       return;
     }
-    if (!hasExecuted.current && paymentId && payerId) {
+    if (!hasExecuted.current && (orderToken || (paymentId && payerId))) {
       hasExecuted.current = true;
       executePayment();
     } else if (!paymentId || !payerId) {
-      setStatus('error');
-      setError('Parâmetros de pagamento ausentes. Não foi possível confirmar a transação.');
+      if (!orderToken) {
+        setStatus('error');
+        setError('Parâmetros de pagamento ausentes. Não foi possível confirmar a transação.');
+      }
     }
-  }, [paymentId, payerId, stateDetails]);
+  }, [paymentId, payerId, orderToken, stateDetails]);
 
   return (
     <>
