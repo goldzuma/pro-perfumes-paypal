@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import PayPalButton from '@/components/PayPalButton.jsx';
 import { useToast } from '@/hooks/use-toast.js';
 import { useCart } from '@/hooks/useCart.jsx';
-import apiServerClient from '@/lib/apiServerClient.js';
 
 /**
  * Mounts PayPal Smart Buttons (contest-system style).
@@ -38,38 +37,15 @@ export default function PayPalButtonsMount({ amount, disabled, description }) {
       amount={amountStr}
       description={description || 'Pedido Velour Perfumes'}
       onApprove={async ({ orderId, captureId }) => {
-        try {
-          const response = await apiServerClient.fetch('/paypal/verify-capture', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId,
-              captureId,
-              amount: Number(amountStr),
-              currency: 'BRL',
-            }),
-          });
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error || 'Falha ao verificar pagamento');
-          }
-          clearCart();
-          navigate('/paypal-success', {
-            state: {
-              orderId,
-              captureId,
-              amount: amountStr,
-              status: 'approved',
-            },
-          });
-        } catch (e) {
-          toast({
-            title: 'Erro ao confirmar pagamento',
-            description: e?.message || 'Tente novamente ou use outro método.',
-            variant: 'destructive',
-          });
-          throw e;
-        }
+        clearCart();
+        navigate('/paypal-success', {
+          state: {
+            orderId,
+            captureId,
+            amount: amountStr,
+            status: 'approved',
+          },
+        });
       }}
       onError={(m) =>
         toast({

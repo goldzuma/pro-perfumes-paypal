@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadPayPalSdk } from '@/lib/paypal.js';
 import { Button } from '@/components/ui/button.jsx';
+import apiServerClient from '@/lib/apiServerClient.js';
 
 /**
  * Props for PayPal Smart Payment Buttons (contest-system style).
@@ -63,23 +64,44 @@ export default function PayPalButton({
         if (!disabledRef.current && actions?.enable) actions.enable();
       },
       createOrder(_data, actions) {
-        const amt = amountRef.current;
-        const cur = currencyRef.current;
-        const desc = descriptionRef.current || 'Pedido Velour Perfumes';
-        return actions.order.create({
-          purchase_units: [
-            {
-              amount: { value: String(amt), currency_code: cur },
-              description: desc,
-            },
-          ],
-          intent: 'CAPTURE',
-        });
+        return apiServerClient
+          .fetch('/paypal/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: String(amountRef.current),
+              currency: currencyRef.current,
+              description: descriptionRef.current || 'Pedido Velour Perfumes',
+            }),
+          })
+          .then(async (res) => {
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              throw new Error(payload.error || 'Falha ao criar pedido PayPal');
+            }
+            if (!payload?.id) {
+              throw new Error('Resposta inválida ao criar pedido PayPal');
+            }
+            return payload.id;
+          })
+          .catch((error) => {
+            onErrorRef.current?.(error?.message || 'Falha ao criar pedido PayPal');
+            throw error;
+          });
       },
-      onApprove: async (_data, actions) => {
+      onApprove: async (data) => {
         try {
-          const details = await actions.order.capture();
-          const orderId = details?.id;
+          const res = await apiServerClient.fetch('/paypal/capture-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderID: data.orderID }),
+          });
+          const details = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(details.error || 'Falha ao capturar pagamento PayPal');
+          }
+
+          const orderId = details?.id || data.orderID;
           const captureId = details?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
           await onApproveRef.current?.({ orderId, captureId });
         } catch (e) {

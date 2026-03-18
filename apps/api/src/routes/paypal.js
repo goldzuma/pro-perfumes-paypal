@@ -966,6 +966,95 @@ async function getPayPalOrder(accessToken, orderId) {
   return res.json();
 }
 
+async function requestPayPalJson(path, { method = 'GET', accessToken, body } = {}) {
+  const base = paypalMode === 'live' ? PP_BASE_LIVE : PP_BASE_SANDBOX;
+  const response = await fetch(`${base}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.error_description ||
+      data?.name ||
+      `PayPal request failed: ${response.status}`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+// ============================================================================
+// POST /paypal/create-order (Orders v2)
+// Request body: { amount, currency, description }
+// Response: PayPal order payload including { id, status }
+// ============================================================================
+router.post('/create-order', async (req, res) => {
+  const { amount, currency = 'BRL', description = 'Pedido Velour Perfumes' } = req.body || {};
+  const normalizedAmount = Number(amount);
+
+  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+    return res.status(400).json({ error: 'amount deve ser um número maior que zero' });
+  }
+
+  try {
+    const accessToken = await getPayPalAccessToken();
+    const order = await requestPayPalJson('/v2/checkout/orders', {
+      method: 'POST',
+      accessToken,
+      body: {
+        intent: 'CAPTURE',
+        purchase_units: [
+          {
+            description,
+            amount: {
+              currency_code: currency,
+              value: normalizedAmount.toFixed(2),
+            },
+          },
+        ],
+      },
+    });
+
+    res.json(order);
+  } catch (err) {
+    logger.error('[paypal/create-order]', err.message);
+    res.status(500).json({ error: err.message || 'Falha ao criar ordem no PayPal' });
+  }
+});
+
+// ============================================================================
+// POST /paypal/capture-order (Orders v2)
+// Request body: { orderID }
+// Response: capture payload from PayPal
+// ============================================================================
+router.post('/capture-order', async (req, res) => {
+  const { orderID } = req.body || {};
+  if (!orderID || typeof orderID !== 'string') {
+    return res.status(400).json({ error: 'orderID é obrigatório' });
+  }
+
+  try {
+    const accessToken = await getPayPalAccessToken();
+    const capture = await requestPayPalJson(`/v2/checkout/orders/${orderID}/capture`, {
+      method: 'POST',
+      accessToken,
+      body: {},
+    });
+
+    res.json(capture);
+  } catch (err) {
+    logger.error('[paypal/capture-order]', err.message);
+    res.status(500).json({ error: err.message || 'Falha ao capturar ordem do PayPal' });
+  }
+});
+
 router.post('/verify-capture', async (req, res) => {
   logger.info('\n========== VERIFY-CAPTURE (Orders v2) ==========');
   const { orderId, captureId, amount, currency } = req.body || {};

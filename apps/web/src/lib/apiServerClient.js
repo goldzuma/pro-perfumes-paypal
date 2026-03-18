@@ -1,4 +1,7 @@
-const API_SERVER_URL = "/hcgi/api";
+const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL
+  || (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:3001'
+    : '/hcgi/api');
 
 const apiServerClient = {
     fetch: async (url, options = {}) => {
