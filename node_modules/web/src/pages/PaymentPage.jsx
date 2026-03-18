@@ -199,6 +199,22 @@ const PaymentPage = () => {
                 <span className="text-3xl font-bold text-amber-400">R$ {total.toFixed(2)}</span>
               </div>
             </div>
+
+            {/* PayPal button – designated area below order summary */}
+            <div className="mt-6 pt-6 border-t border-amber-900/30">
+              <PaymentMethodBoundary methodName="PayPal (resumo)">
+                <PayPalCheckout
+                  amount={total}
+                  items={validItems}
+                  disabled={!isCartValid || isLoading}
+                  checkoutData={checkoutData}
+                  onOpenModal={handleOpenModal}
+                  triggerPayment={triggerPayPal}
+                  onPaymentTriggered={() => setTriggerPayPal(false)}
+                  buttonLabel="Pay with Paypal"
+                />
+              </PaymentMethodBoundary>
+            </div>
           </div>
         </div>
 

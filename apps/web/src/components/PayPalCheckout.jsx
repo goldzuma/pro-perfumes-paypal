@@ -5,7 +5,7 @@ import apiServerClient from '@/lib/apiServerClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
-const PayPalCheckout = ({ amount, items, disabled, checkoutData, onOpenModal, triggerPayment, onPaymentTriggered }) => {
+const PayPalCheckout = ({ amount, items, disabled, checkoutData, onOpenModal, triggerPayment, onPaymentTriggered, buttonLabel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
@@ -249,7 +249,7 @@ const PayPalCheckout = ({ amount, items, disabled, checkoutData, onOpenModal, tr
         ) : (
           <Wallet className="w-6 h-6" />
         )}
-        {isLoading ? 'Processando...' : (checkoutData ? 'Pagar com PayPal' : 'Preencher Dados e Pagar')}
+        {isLoading ? 'Processando...' : (buttonLabel ?? (checkoutData ? 'Pagar com PayPal' : 'Preencher Dados e Pagar'))}
       </Button>
       
       <p className="text-center text-xs text-amber-100/50 mt-3">
