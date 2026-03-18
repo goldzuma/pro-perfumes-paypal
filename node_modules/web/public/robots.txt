@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://velourperfumes.com.br/sitemap.xml

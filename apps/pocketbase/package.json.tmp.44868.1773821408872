@@ -1,0 +1,13 @@
+{
+  "name": "pocketbase-app",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pocketbase.exe serve --http=0.0.0.0:8090 --hooksWatch=false",
+    "start": "pocketbase.exe serve --http=0.0.0.0:8090 --dir=/data --migrationsDir=./pb_migrations --hooksDir=./pb_hooks --hooksWatch=false",
+    "migrations:up": "pocketbase.exe horizons migrations:up --dir=/data --migrationsDir=./pb_migrations --hooksDir=./pb_hooks --hooksWatch=false",
+    "migrations:revert": "pocketbase.exe horizons migrations:revert --dir=/data --migrationsDir=./pb_migrations --hooksDir=./pb_hooks --hooksWatch=false",
+    "migrations:snapshot": "mkdir -p ./pb_snapshots && echo 'y' | pocketbase.exe migrate collections --dir=/data --migrationsDir=./pb_snapshots"
+  }
+}

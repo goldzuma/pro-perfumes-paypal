@@ -1,0 +1,161 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core Colors - Changed from pure black to a very dark zinc/gray to ensure visibility */
+    --background: 240 10% 4%;
+    --foreground: 38 92% 90%;
+    --card: 240 10% 6%;
+    --card-foreground: 38 92% 90%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 38 92% 90%;
+    
+    /* Brand Accents (Amber/Gold) */
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 240 10% 10%;
+    --secondary-foreground: 38 92% 90%;
+    --muted: 240 10% 12%;
+    --muted-foreground: 38 92% 70%;
+    --accent: 38 92% 20%;
+    --accent-foreground: 38 92% 90%;
+    
+    /* Status Colors */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 38 92% 90%;
+    
+    /* UI Elements */
+    --border: 240 10% 15%;
+    --input: 240 10% 15%;
+    --ring: 38 92% 50%;
+    --radius: 0.5rem;
+
+    /* Layout Tokens */
+    --header-height-mobile: 5rem;
+    --header-height-desktop: 6rem;
+  }
+
+  .dark {
+    --background: 240 10% 4%;
+    --foreground: 38 92% 90%;
+    --card: 240 10% 6%;
+    --card-foreground: 38 92% 90%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 38 92% 90%;
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 240 10% 10%;
+    --secondary-foreground: 38 92% 90%;
+    --muted: 240 10% 12%;
+    --muted-foreground: 38 92% 70%;
+    --accent: 38 92% 20%;
+    --accent-foreground: 38 92% 90%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 38 92% 90%;
+    --border: 240 10% 15%;
+    --input: 240 10% 15%;
+    --ring: 38 92% 50%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased overflow-x-hidden min-h-screen;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  * {
+    @apply border-border;
+  }
+}
+
+@layer utilities {
+  /* Interactive Element Transitions */
+  .interactive-transition {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* Menu Icon Animations */
+  .menu-icon-transition {
+    @apply transition-transform duration-300 ease-in-out;
+  }
+  
+  .menu-icon-open {
+    @apply rotate-90 scale-110 opacity-0;
+  }
+  
+  .menu-icon-closed {
+    @apply rotate-0 scale-100 opacity-100;
+  }
+
+  /* Navigation Link Hover Effect */
+  .nav-link-hover {
+    @apply relative after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-0 after:bg-amber-400 after:transition-all after:duration-300 hover:after:w-full;
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(217, 119, 6, 0.3);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(217, 119, 6, 0.5);
+  }
+
+  /* Form Styles */
+  .form-group {
+    @apply space-y-2;
+  }
+  
+  .form-label {
+    @apply text-sm font-medium text-amber-100/80;
+  }
+  
+  .form-input {
+    @apply flex h-10 w-full rounded-md border border-input bg-zinc-900/50 px-3 py-2 text-sm text-amber-50 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors;
+  }
+
+  .form-error {
+    @apply text-xs text-red-400 mt-1;
+  }
+
+  /* Filter Buttons */
+  .filter-btn {
+    @apply px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap active:scale-95;
+  }
+  .filter-btn-active {
+    @apply bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.4)];
+  }
+  .filter-btn-inactive {
+    @apply bg-zinc-900 text-amber-100/80 hover:bg-zinc-800 hover:text-amber-100 border border-amber-900/30;
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+  width: max-content;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
