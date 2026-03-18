@@ -97,8 +97,8 @@ const PixPayment = ({ onCopy, amount }) => {
             
             <div>
               <p className="text-xs text-amber-100/50 uppercase tracking-wider mb-2">Chave PIX (CNPJ)</p>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <code className="text-lg text-teal-400 font-bold bg-teal-950/30 px-3 py-1 rounded border border-teal-900/50 select-all break-all">
+              <div className="flex flex-wrap items-center gap-3">
+                <code className="flex-1 min-w-[220px] text-base sm:text-lg text-teal-300 font-semibold bg-teal-950/30 px-3 py-2 rounded-md border border-teal-800/60 select-all whitespace-nowrap overflow-x-auto">
                   {pixKey}
                 </code>
                 
