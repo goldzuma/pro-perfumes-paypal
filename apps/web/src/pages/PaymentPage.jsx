@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useCart } from '@/hooks/useCart.jsx';
 import MercadoPagoCheckout from '@/components/MercadoPagoCheckout.jsx';
 import PayPalCheckout from '@/components/PayPalCheckout.jsx';
+import PayPalButtonsMount from '@/components/PayPalButtonsMount.jsx';
 import PixPayment from '@/components/PixPayment.jsx';
 import StripeCheckoutButton from '@/components/StripeCheckoutButton.jsx';
 import CheckoutModal from '@/components/CheckoutModal.jsx';
@@ -200,20 +201,19 @@ const PaymentPage = () => {
               </div>
             </div>
 
-            {/* PayPal button – designated area below order summary */}
+            {/* PayPal Smart Buttons – designated area (contest-system style: opens PayPal UI in-page) */}
             <div className="mt-6 pt-6 border-t border-amber-900/30">
+              <p className="text-sm text-amber-100/70 mb-3">Pay with Paypal</p>
               <PaymentMethodBoundary methodName="PayPal (resumo)">
-                <PayPalCheckout
+                <PayPalButtonsMount
                   amount={total}
-                  items={validItems}
                   disabled={!isCartValid || isLoading}
-                  checkoutData={checkoutData}
-                  onOpenModal={handleOpenModal}
-                  triggerPayment={triggerPayPal}
-                  onPaymentTriggered={() => setTriggerPayPal(false)}
-                  buttonLabel="Pay with Paypal"
+                  description="Pedido Velour Perfumes"
                 />
               </PaymentMethodBoundary>
+              <p className="text-center text-xs text-amber-100/50 mt-3">
+                Você será redirecionado para o ambiente seguro do PayPal para concluir a compra.
+              </p>
             </div>
           </div>
         </div>

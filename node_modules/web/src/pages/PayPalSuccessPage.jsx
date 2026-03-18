@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useLocation, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { CheckCircle, ShoppingBag, Loader2, AlertCircle, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,12 +8,23 @@ import apiServerClient from '@/lib/apiServerClient';
 
 const PayPalSuccessPage = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const paymentId = searchParams.get('paymentId');
   const payerId = searchParams.get('PayerID') || searchParams.get('payerId');
-  
-  const [status, setStatus] = useState('loading');
+  /** State from Smart Buttons flow (verify-capture + navigate with state) */
+  const stateDetails = location.state;
+
+  const [status, setStatus] = useState(stateDetails?.orderId ? 'success' : 'loading');
   const [error, setError] = useState(null);
-  const [paymentDetails, setPaymentDetails] = useState(null);
+  const [paymentDetails, setPaymentDetails] = useState(
+    stateDetails?.orderId
+      ? {
+          id: stateDetails.orderId,
+          amount: stateDetails.amount,
+          status: stateDetails.status || 'approved',
+        }
+      : null
+  );
   const { clearCart } = useCart();
   const hasExecuted = useRef(false);
 
@@ -54,11 +64,18 @@ const PayPalSuccessPage = () => {
   };
 
   useEffect(() => {
-    if (!hasExecuted.current) {
+    if (stateDetails?.orderId) {
+      clearCart();
+      return;
+    }
+    if (!hasExecuted.current && paymentId && payerId) {
       hasExecuted.current = true;
       executePayment();
+    } else if (!paymentId || !payerId) {
+      setStatus('error');
+      setError('Parâmetros de pagamento ausentes. Não foi possível confirmar a transação.');
     }
-  }, [paymentId, payerId]);
+  }, [paymentId, payerId, stateDetails]);
 
   return (
     <>

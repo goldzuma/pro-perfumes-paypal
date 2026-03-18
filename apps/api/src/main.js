@@ -199,6 +199,7 @@ logger.info('  ✓ GET  /mercado-pago/payment-status/:id (Get Mercado Pago payme
 logger.info('  ✓ POST /mercado-pago/webhook            (Mercado Pago webhook)');
 logger.info('  ✓ POST /pagseguro/checkout              (Create PagSeguro checkout)');
 logger.info('  ✓ POST /pagseguro/webhook               (PagSeguro webhook)');
+logger.info('  ✓ POST /paypal/verify-capture          (Verify PayPal Orders v2 capture)');
 
 // ============================================================================
 // SERVER STARTUP

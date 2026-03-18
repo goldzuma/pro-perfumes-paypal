@@ -926,4 +926,91 @@ router.post('/execute-payment', async (req, res) => {
   logger.info('========== REQUEST COMPLETE ==========\n');
 });
 
+// ============================================================================
+// POST /paypal/verify-capture (Orders v2 – for Smart Payment Buttons flow)
+// Client creates order and captures in browser; this endpoint verifies with PayPal and records.
+// Request body: { orderId, captureId?, amount, currency }
+// ============================================================================
+
+const PP_BASE_SANDBOX = 'https://api-m.sandbox.paypal.com';
+const PP_BASE_LIVE = 'https://api-m.paypal.com';
+
+async function getPayPalAccessToken() {
+  const base = paypalMode === 'live' ? PP_BASE_LIVE : PP_BASE_SANDBOX;
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  const res = await fetch(`${base}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${auth}`,
+    },
+    body: 'grant_type=client_credentials',
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`PayPal OAuth failed: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  return data.access_token;
+}
+
+async function getPayPalOrder(accessToken, orderId) {
+  const base = paypalMode === 'live' ? PP_BASE_LIVE : PP_BASE_SANDBOX;
+  const res = await fetch(`${base}/v2/checkout/orders/${orderId}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`PayPal get order failed: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+router.post('/verify-capture', async (req, res) => {
+  logger.info('\n========== VERIFY-CAPTURE (Orders v2) ==========');
+  const { orderId, captureId, amount, currency } = req.body || {};
+
+  if (!orderId || typeof orderId !== 'string') {
+    return res.status(400).json({ error: 'orderId é obrigatório' });
+  }
+
+  try {
+    const accessToken = await getPayPalAccessToken();
+    const order = await getPayPalOrder(accessToken, orderId);
+    const status = order?.status;
+
+    if (status !== 'COMPLETED') {
+      logger.warn(`[verify-capture] Order ${orderId} status: ${status}`);
+      return res.status(400).json({
+        error: `Ordem PayPal não está concluída: ${status || 'desconhecido'}`,
+      });
+    }
+
+    const unit = order?.purchase_units?.[0];
+    const amountValue = unit?.amount?.value != null ? parseFloat(unit.amount.value) : null;
+    const currencyCode = unit?.amount?.currency_code || currency;
+
+    if (amount != null && amountValue != null && Math.abs(parseFloat(amount) - amountValue) > 0.01) {
+      return res.status(400).json({
+        error: 'Valor da ordem não confere com o valor enviado',
+      });
+    }
+
+    logger.info(`[verify-capture] Order ${orderId} verified, captureId: ${captureId || 'n/a'}`);
+    res.json({
+      success: true,
+      orderId,
+      captureId: captureId || unit?.payments?.captures?.[0]?.id,
+      amount: String(amountValue ?? amount),
+      currency: currencyCode,
+      status: 'COMPLETED',
+    });
+  } catch (err) {
+    logger.error('[verify-capture]', err.message);
+    res.status(500).json({
+      error: err.message || 'Falha ao verificar ordem com PayPal',
+    });
+  }
+});
+
 export default router;
