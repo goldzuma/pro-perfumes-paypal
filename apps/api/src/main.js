@@ -1,14 +1,6 @@
 import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-
-import routes from './routes/index.js';
-import { errorMiddleware } from './middleware/index.js';
+import app from './app.js';
 import logger from './utils/logger.js';
-
-const app = express();
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught exception:', error);
@@ -40,110 +32,7 @@ logger.info(`Timestamp: ${new Date().toISOString()}`);
 logger.info(`Node Environment: ${process.env.NODE_ENV || 'development'}`);
 logger.info(`Process ID: ${process.pid}`);
 
-// ============================================================================
-// MIDDLEWARE INITIALIZATION
-// ============================================================================
-logger.info('\n--- MIDDLEWARE INITIALIZATION ---');
-
-try {
-  logger.info('Loading helmet (security headers)...');
-  app.use(helmet());
-  logger.info('✓ Helmet middleware loaded');
-} catch (error) {
-  logger.error('❌ Failed to load helmet middleware:', error.message);
-  throw error;
-}
-
-try {
-  logger.info('Loading CORS middleware...');
-  app.use(cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true,
-  }));
-  logger.info(`✓ CORS middleware loaded (origin: ${process.env.CORS_ORIGIN})`);
-} catch (error) {
-  logger.error('❌ Failed to load CORS middleware:', error.message);
-  throw error;
-}
-
-try {
-  logger.info('Loading morgan (HTTP request logging)...');
-  app.use(morgan('combined'));
-  logger.info('✓ Morgan middleware loaded');
-} catch (error) {
-  logger.error('❌ Failed to load morgan middleware:', error.message);
-  throw error;
-}
-
-try {
-  logger.info('Loading express.json() body parser...');
-  app.use(express.json());
-  logger.info('✓ express.json() middleware loaded');
-} catch (error) {
-  logger.error('❌ Failed to load express.json() middleware:', error.message);
-  throw error;
-}
-
-try {
-  logger.info('Loading express.urlencoded() body parser...');
-  app.use(express.urlencoded({ extended: true }));
-  logger.info('✓ express.urlencoded() middleware loaded');
-} catch (error) {
-  logger.error('❌ Failed to load express.urlencoded() middleware:', error.message);
-  throw error;
-}
-
-logger.info('✓✓✓ All middleware loaded successfully');
-
-// ============================================================================
-// ROUTE INITIALIZATION
-// ============================================================================
-logger.info('\n--- ROUTE INITIALIZATION ---');
-
-try {
-  logger.info('Importing routes from ./routes/index.js...');
-  const routerFunction = routes();
-  logger.info('✓ Routes function executed successfully');
-  logger.info(`✓ Router object type: ${typeof routerFunction}`);
-  
-  logger.info('Mounting routes at root path \'/\'...');
-  app.use('/', routerFunction);
-  logger.info('✓ Routes mounted successfully');
-} catch (error) {
-  logger.error('❌ Failed to initialize routes:', error.message);
-  logger.error(`Error stack: ${error.stack}`);
-  throw error;
-}
-
-// ============================================================================
-// ERROR MIDDLEWARE
-// ============================================================================
-logger.info('\n--- ERROR MIDDLEWARE INITIALIZATION ---');
-
-try {
-  logger.info('Loading error middleware...');
-  app.use(errorMiddleware);
-  logger.info('✓ Error middleware loaded');
-} catch (error) {
-  logger.error('❌ Failed to load error middleware:', error.message);
-  throw error;
-}
-
-// ============================================================================
-// 404 HANDLER
-// ============================================================================
-logger.info('\n--- 404 HANDLER INITIALIZATION ---');
-
-try {
-  logger.info('Loading 404 handler...');
-  app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-  });
-  logger.info('✓ 404 handler loaded');
-} catch (error) {
-  logger.error('❌ Failed to load 404 handler:', error.message);
-  throw error;
-}
+logger.info('\n✓ App initialized from src/app.js');
 
 // ============================================================================
 // ENVIRONMENT VARIABLES VERIFICATION

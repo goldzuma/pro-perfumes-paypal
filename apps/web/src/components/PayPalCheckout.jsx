@@ -54,9 +54,10 @@ const PayPalCheckout = ({ amount, items, disabled, checkoutData, onOpenModal, tr
       console.log('  - Return URL:', returnUrl);
       console.log('  - Cancel URL:', cancelUrl);
 
-      // CRITICAL: Backend expects ONLY { amount, returnUrl, cancelUrl }
+      // Support legacy create-payment flow payload (v1 REST endpoint)
       const requestPayload = {
         amount: paymentAmount,
+        description: 'Pedido Velour Perfumes',
         returnUrl,
         cancelUrl
       };
@@ -125,6 +126,7 @@ const PayPalCheckout = ({ amount, items, disabled, checkoutData, onOpenModal, tr
       console.log('[PayPalCheckout] ========== VALIDATING RESPONSE ==========');
       console.log('[PayPalCheckout] Response has id:', !!data.id);
       console.log('[PayPalCheckout] Response has links:', !!data.links);
+      console.log('[PayPalCheckout] Response has approvalUrl:', !!data.approvalUrl);
       console.log('[PayPalCheckout] Links is array:', Array.isArray(data.links));
       console.log('[PayPalCheckout] Links count:', data.links?.length || 0);
       
@@ -140,15 +142,21 @@ const PayPalCheckout = ({ amount, items, disabled, checkoutData, onOpenModal, tr
       }
       console.log('[PayPalCheckout] =========================================');
 
-      if (!data.id || !data.links || !Array.isArray(data.links)) {
+      // Backend may return:
+      // A) { id, links } or B) { success, approvalUrl, paymentId }
+      const hasLinksResponse = !!data.id && Array.isArray(data.links);
+      const hasApprovalUrlResponse = typeof data.approvalUrl === 'string' && data.approvalUrl.length > 0;
+      if (!hasLinksResponse && !hasApprovalUrlResponse) {
         console.error('[PayPalCheckout] ❌ Invalid response structure');
-        console.error('[PayPalCheckout] Expected: { id: string, links: array }');
+        console.error('[PayPalCheckout] Expected: { id: string, links: array } OR { approvalUrl: string }');
         console.error('[PayPalCheckout] Received:', data);
         throw new Error('Resposta inválida do PayPal - estrutura incorreta');
       }
 
-      // Find approval URL in links array
-      const approvalLink = data.links.find(link => link.rel === 'approval_url' || link.rel === 'approve');
+      // Find approval URL in links array (or use direct approvalUrl field)
+      const approvalLink = Array.isArray(data.links)
+        ? data.links.find(link => link.rel === 'approval_url' || link.rel === 'approve' || link.rel === 'payer-action')
+        : null;
       console.log('[PayPalCheckout] Searching for approval link...');
       console.log('[PayPalCheckout] Approval link found:', !!approvalLink);
       
@@ -160,15 +168,18 @@ const PayPalCheckout = ({ amount, items, disabled, checkoutData, onOpenModal, tr
         });
       }
 
-      if (!approvalLink || !approvalLink.href) {
+      const approvalUrl = data.approvalUrl || approvalLink?.href;
+      if (!approvalUrl) {
         console.error('[PayPalCheckout] ❌ No approval URL found in links');
-        console.error('[PayPalCheckout] Available links:', data.links);
+        console.error('[PayPalCheckout] Available links/direct URL:', {
+          links: data.links,
+          approvalUrl: data.approvalUrl
+        });
         throw new Error('URL de aprovação do PayPal não encontrada na resposta');
       }
 
-      const approvalUrl = approvalLink.href;
       console.log('[PayPalCheckout] ========== REDIRECTING TO PAYPAL ==========');
-      console.log('[PayPalCheckout] Payment ID:', data.id);
+      console.log('[PayPalCheckout] Payment ID:', data.id || data.paymentId);
       console.log('[PayPalCheckout] Approval URL:', approvalUrl);
       console.log('[PayPalCheckout] Redirecting in 1 second...');
       console.log('[PayPalCheckout] ============================================');
